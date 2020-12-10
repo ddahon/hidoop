@@ -1,4 +1,5 @@
-/* une PROPOSITION de squelette, incomplète et adaptable... */
+/* 
+ */
 
 package hdfs;
 
@@ -9,8 +10,11 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.naming.CommunicationException;
 
 import formats.Format;
 import formats.KV;
@@ -21,7 +25,7 @@ import formats.Format.Type;
 public class HdfsClient {
 
     final static String host = "localhost";
-    final static int[] ports = {8081, 8082};
+    final static int[] ports = { 8081, 8082 };
     final static int nbChunks = 2;
 
     private static void usage() {
@@ -33,10 +37,11 @@ public class HdfsClient {
     public static void HdfsDelete(String hdfsFname) {
     }
 
-    public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
+    public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor)
+            throws CommunicationException {
         try {
             Format format;
-            String fname = ""; // TODO : choisir la convention de nommage
+            String fname = localFSSourceFname;
 
             if (fmt == Type.KV) {
                 format = new KVFormat(fname);
@@ -44,41 +49,77 @@ public class HdfsClient {
                 format = new LineFormat(fname);
             }
 
-            // TODO fragmentation du fichier
-            List<KV> fragments = new LinkedList<KV>();
+            // Lecture du fichier par fragments
+            LinkedList<KV> fragments = new LinkedList<KV>();
             KV kv = format.read();
-            while(kv != null) {
+            int nbFragments = 0;
+
+            while (kv != null) {
+                nbFragments++;
                 fragments.add(kv);
                 kv = format.read();
-            } 
+            }
 
-            // Socket utilisé pour la communication avec le serveur 1
-            Socket s1 = new Socket(host, ports[0]);
-            OutputStream os1 = s1.getOutputStream();
-            InputStream is1 = s1.getInputStream();
-            ObjectOutputStream oos1 = new ObjectOutputStream(os1);
-            ObjectInputStream ois1 = new ObjectInputStream(is1);
+            int tailleChunk = nbFragments / nbChunks;
+            LinkedList<LinkedList<KV>> chunks = new LinkedList<LinkedList<KV>>();
 
-            // Socket utilisé pour la communication avec le serveur 2
-            Socket s2 = new Socket(host, ports[1]);
-            OutputStream os2 = s2.getOutputStream();
-            InputStream is2 = s2.getInputStream();
-            ObjectOutputStream oos2 = new ObjectOutputStream(os2);
-            ObjectInputStream ois2 = new ObjectInputStream(is2);
+            // Création de chaque chunk
+            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
+                LinkedList<KV> chunk = new LinkedList<KV>();
+                // Remplissage des chunks
+                for (int i = 0; i < tailleChunk; i++) {
+                    chunk.add(fragments.remove());
+                }
+                chunks.add(chunk);
+            }
 
-            // Fermeture des sockets et des streams
-            os1.close();
-            is1.close();
-            os2.close();
-            is2.close();
-            s1.close();
-            s2.close();
+            // On rajoute les éventuels fragments restants dans le dernier chunk
+            while (!fragments.isEmpty()) {
+                chunks.getLast().add(fragments.remove());
+            }
+
+            // Envoi des chunks sur les serveurs
+            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
+                // Ouverture des sockets
+                Socket s = new Socket(host, ports[numeroChunk]);
+                OutputStream os = s.getOutputStream();
+                InputStream is = s.getInputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(os);
+                ObjectInputStream ois = new ObjectInputStream(is);
+
+                // Envoi du message
+                Message message = new Message("write", fname + Integer.toString(numeroChunk));
+                oos.writeObject(message);
+
+                // Attente de l'accusé de réception
+                String reponse = (String) ois.readObject();
+                try {
+                    if (reponse != "ok") { 
+                        throw new CommunicationException("Communication entre HdfsClient et HdfsServer échouée"); 
+                    }
+            
+                // Envoi du chunk
+                oos.writeObject(chunks.get(numeroChunk));
+
+                } catch (CommunicationException e) {
+                    System.out.println(e.getExplanation());
+                } finally {
+                    // Fermeture des sockets
+                    s.close();
+                    os.close();
+                    is.close();
+                    oos.close();
+                    ois.close();
+                }
+            }
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } 
       }
 
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
