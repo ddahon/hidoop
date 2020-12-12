@@ -26,7 +26,7 @@ public class HdfsClient {
 
     final static String host = "localhost";
     final static int[] ports = { 8081, 8082 };
-    final static int nbChunks = 2;
+    final static int nbChunks = 1;
 
     private static void usage() {
         System.out.println("Usage: java HdfsClient read <file>");
@@ -48,26 +48,30 @@ public class HdfsClient {
             } else {
                 format = new LineFormat(fname);
             }
+            format.open(Format.OpenMode.R);
 
             // Lecture du fichier par fragments
-            LinkedList<KV> fragments = new LinkedList<KV>();
+            Chunk fragments = new Chunk();
             KV kv = format.read();
             int nbFragments = 0;
 
             while (kv != null) {
+                System.out.println("Lecture d'une ligne dans le fichier");
                 nbFragments++;
                 fragments.add(kv);
                 kv = format.read();
             }
-
+            format.close();
+            
             int tailleChunk = nbFragments / nbChunks;
-            LinkedList<LinkedList<KV>> chunks = new LinkedList<LinkedList<KV>>();
+            LinkedList<Chunk> chunks = new LinkedList<Chunk>();
 
             // Création de chaque chunk
             for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-                LinkedList<KV> chunk = new LinkedList<KV>();
+                Chunk chunk = new Chunk();
                 // Remplissage des chunks
                 for (int i = 0; i < tailleChunk; i++) {
+                    System.out.println("Ajout d'une ligne dans le chunk " + numeroChunk);
                     chunk.add(fragments.remove());
                 }
                 chunks.add(chunk);
@@ -93,24 +97,23 @@ public class HdfsClient {
 
                 // Attente de l'accusé de réception
                 String reponse = (String) ois.readObject();
-                try {
+
+                //System.out.println("Accusé de réception : " + reponse);
+                /*try {
                     if (reponse != "ok") { 
                         throw new CommunicationException("Communication entre HdfsClient et HdfsServer échouée"); 
-                    }
+                    }*/
             
                 // Envoi du chunk
+                System.out.println("Nombre de ligne du chunk à envoyer : " + chunks.get(numeroChunk).size());
                 oos.writeObject(chunks.get(numeroChunk));
 
-                } catch (CommunicationException e) {
-                    System.out.println(e.getExplanation());
-                } finally {
-                    // Fermeture des sockets
-                    s.close();
-                    os.close();
-                    is.close();
-                    oos.close();
-                    ois.close();
-                }
+                // Fermeture des sockets
+                s.close();
+                os.close();
+                is.close();
+                oos.close();
+                ois.close();
             }
 
         } catch (UnknownHostException e) {
