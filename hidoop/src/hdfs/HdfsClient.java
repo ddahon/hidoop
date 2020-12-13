@@ -19,6 +19,7 @@ import javax.naming.CommunicationException;
 import formats.Format;
 import formats.KV;
 import formats.KVFormat;
+import formats.KVS;
 import formats.LineFormat;
 import formats.Format.Type;
 
@@ -26,7 +27,7 @@ public class HdfsClient {
 
     final static String host = "localhost";
     final static int[] ports = { 8081, 8082 };
-    final static int nbChunks = 1;
+    final static int nbChunks = 2;
 
     private static void usage() {
         System.out.println("Usage: java HdfsClient read <file>");
@@ -42,7 +43,6 @@ public class HdfsClient {
         try {
             Format format;
             String fname = localFSSourceFname;
-
             if (fmt == Type.KV) {
                 format = new KVFormat(fname);
             } else {
@@ -56,9 +56,8 @@ public class HdfsClient {
             int nbFragments = 0;
 
             while (kv != null) {
-                System.out.println("Lecture d'une ligne dans le fichier");
                 nbFragments++;
-                fragments.add(kv);
+                fragments.add(new KVS(kv.k, kv.v));
                 kv = format.read();
             }
             format.close();
@@ -71,7 +70,6 @@ public class HdfsClient {
                 Chunk chunk = new Chunk();
                 // Remplissage des chunks
                 for (int i = 0; i < tailleChunk; i++) {
-                    System.out.println("Ajout d'une ligne dans le chunk " + numeroChunk);
                     chunk.add(fragments.remove());
                 }
                 chunks.add(chunk);
@@ -92,20 +90,17 @@ public class HdfsClient {
                 ObjectInputStream ois = new ObjectInputStream(is);
 
                 // Envoi du message
-                Message message = new Message("write", fname + Integer.toString(numeroChunk));
+                // On préfixe le nom du fichier par le numéro de chunk
+                String[] cheminDecoupe = fname.split("/");
+                String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
+                Message message = new Message("write", HdfsFname);
                 oos.writeObject(message);
 
                 // Attente de l'accusé de réception
                 String reponse = (String) ois.readObject();
 
-                //System.out.println("Accusé de réception : " + reponse);
-                /*try {
-                    if (reponse != "ok") { 
-                        throw new CommunicationException("Communication entre HdfsClient et HdfsServer échouée"); 
-                    }*/
-            
                 // Envoi du chunk
-                System.out.println("Nombre de ligne du chunk à envoyer : " + chunks.get(numeroChunk).size());
+                System.out.println("Nombre de lignes du chunk à envoyer : " + chunks.get(numeroChunk).size());
                 oos.writeObject(chunks.get(numeroChunk));
 
                 // Fermeture des sockets
@@ -127,7 +122,7 @@ public class HdfsClient {
 
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
 
-     }
+    }
 
 	
     public static void main(String[] args) {
@@ -146,7 +141,7 @@ public class HdfsClient {
                 else if(args[1].equals("kv")) fmt = Format.Type.KV;
                 else {usage(); return;}
                 HdfsWrite(fmt,args[2],1);
-            }	
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }

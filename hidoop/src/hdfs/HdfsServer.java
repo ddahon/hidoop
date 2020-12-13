@@ -11,7 +11,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 
+import formats.Format;
 import formats.KV;
+import formats.KVFormat;
+import formats.KVS;
+import formats.Format.OpenMode;
 
 public class HdfsServer {
     final static int ports[] = {8081,8082};
@@ -52,8 +56,11 @@ public class HdfsServer {
                 System.out.println("Nombre de lignes du fichier reçu : " + chunk.size());
                 
                 // TODO ecriture du chunk dans un nouveau fichier message.getPremierNomFichier()
-
-
+                Format format = new KVFormat(message.getPremierNomFichier());
+                format.open(OpenMode.W);
+                for (KVS kvs : chunk) {
+                    format.write(new KV(kvs.k, kvs.v));
+                }
                 os.close();
                 is.close();
                 s.close();
