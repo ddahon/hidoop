@@ -2,6 +2,7 @@ package formats;
 
 import java.io.Serializable;
 
+/* Version sérializable de KV */
 public class KVS implements Serializable{
 
 	public static final String SEPARATOR = "<->";

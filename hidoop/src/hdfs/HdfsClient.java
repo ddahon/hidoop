@@ -3,6 +3,7 @@
 
 package hdfs;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -13,7 +14,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.naming.CommunicationException;
 
 import formats.Format;
@@ -25,9 +25,10 @@ import formats.Format.Type;
 
 public class HdfsClient {
 
-    final static String host = "localhost";
+    final static String[] hosts = {"localhost", "localhost"};
     final static int[] ports = { 8081, 8082 };
     final static int nbChunks = 2;
+    final static int tailleMaxEnvoi = 10000;
 
     private static void usage() {
         System.out.println("Usage: java HdfsClient read <file>");
@@ -50,58 +51,58 @@ public class HdfsClient {
             }
             format.open(Format.OpenMode.R);
 
-            // Lecture du fichier par fragments
-            Chunk fragments = new Chunk();
-            KV kv = format.read();
-            int nbFragments = 0;
+            // Lecture du fichier
+            long nbLignes = Utilities.countLines(fname);
+            long tailleChunk = nbLignes / nbChunks;
+            int nbLignesRestantes = (int) nbLignes % nbChunks;
+            int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
+            long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
+            System.out.println("Nombre de lignes : " + nbLignes);
 
-            while (kv != null) {
-                nbFragments++;
-                fragments.add(new KVS(kv.k, kv.v));
-                kv = format.read();
-            }
-            format.close();
-            
-            int tailleChunk = nbFragments / nbChunks;
-            LinkedList<Chunk> chunks = new LinkedList<Chunk>();
-
-            // Création de chaque chunk
+            // On traite les chunks l'un après l'autre
             for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-                Chunk chunk = new Chunk();
-                // Remplissage des chunks
-                for (int i = 0; i < tailleChunk; i++) {
-                    chunk.add(fragments.remove());
-                }
-                chunks.add(chunk);
-            }
 
-            // On rajoute les éventuels fragments restants dans le dernier chunk
-            while (!fragments.isEmpty()) {
-                chunks.getLast().add(fragments.remove());
-            }
+                 // Ouverture des sockets
+                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                 OutputStream os = s.getOutputStream();
+                 InputStream is = s.getInputStream();
+                 ObjectOutputStream oos = new ObjectOutputStream(os);
+                 ObjectInputStream ois = new ObjectInputStream(is);
 
-            // Envoi des chunks sur les serveurs
-            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-                // Ouverture des sockets
-                Socket s = new Socket(host, ports[numeroChunk]);
-                OutputStream os = s.getOutputStream();
-                InputStream is = s.getInputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(os);
-                ObjectInputStream ois = new ObjectInputStream(is);
-
-                // Envoi du message
                 // On préfixe le nom du fichier par le numéro de chunk
                 String[] cheminDecoupe = fname.split("/");
                 String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
-                Message message = new Message("write", HdfsFname);
-                oos.writeObject(message);
+
+                // Envoi du message pour initialiser la communication
+                Message messageDebut = new Message("write", HdfsFname);
+                oos.writeObject(messageDebut);
 
                 // Attente de l'accusé de réception
-                String reponse = (String) ois.readObject();
+                ois.readObject();
 
-                // Envoi du chunk
-                System.out.println("Nombre de lignes du chunk à envoyer : " + chunks.get(numeroChunk).size());
-                oos.writeObject(chunks.get(numeroChunk));
+                // On envoie le chunk par morceaux
+                for (int envoi = 0; envoi<nbEnvoi; envoi++) {
+                    Chunk morceauAEnvoyer = new Chunk();
+                    for (long i = 0; i<tailleEnvoi; i++) {
+                        KV kv = format.read();
+                        morceauAEnvoyer.add(new KVS(kv.k, kv.v));
+                    }
+                    oos.writeObject(morceauAEnvoyer);
+                }
+
+                // On met les éventuelles lignes restantes dans le dernier chunk
+                if (numeroChunk == nbChunks-1 && nbLignesRestantes > 0) {
+                    Chunk lignesRestantes = new Chunk();
+                    for (int i = 0; i<nbLignesRestantes; i++) {
+                        KV kv = format.read();
+                        lignesRestantes.add(new KVS(kv.k, kv.v));
+                    }
+                    oos.writeObject(lignesRestantes);
+                }
+                
+                // Envoi du message de fin de communication
+                Message messageFin = new Message("write", "FIN");
+                oos.writeObject(messageFin);
 
                 // Fermeture des sockets
                 s.close();
@@ -110,6 +111,8 @@ public class HdfsClient {
                 oos.close();
                 ois.close();
             }
+
+            format.close();
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -120,7 +123,7 @@ public class HdfsClient {
         } 
       }
 
-    public static void HdfsRead(String hdfsFname, String localFSDestFname) {
+      public static void HdfsRead(String hdfsFname, String localFSDestFname) {
 
     }
 
