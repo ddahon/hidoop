@@ -78,9 +78,6 @@ public class HdfsClient {
                 // Message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
 
-                // Attente de l'accusé de réception
-                ois.readObject();
-
                 // On envoie le chunk par morceaux
                 for (int envoi = 0; envoi<nbEnvoi; envoi++) {
                     Chunk morceauAEnvoyer = new Chunk();
@@ -117,9 +114,7 @@ public class HdfsClient {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } 
+        }
       }
 
       // TODO
@@ -141,9 +136,6 @@ public class HdfsClient {
                 // Envoi du message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
                 oos.writeObject(messageDebut);
-
-                // Attente de l'accusé de réception
-                ois.readObject();
                 
                 // Envoi du message de fin de communication
                 Message messageFin = new Message(Commande.CMD_READ, "FIN");
@@ -162,8 +154,6 @@ public class HdfsClient {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }

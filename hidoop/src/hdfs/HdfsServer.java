@@ -30,7 +30,7 @@ public class HdfsServer {
             ServerSocket ss = new ServerSocket(ports[i]);
 
             while (true) {
-                
+
                 System.out.println("Listening on port " + ports[i]);
                 Socket s = ss.accept();
 
@@ -63,8 +63,6 @@ public class HdfsServer {
                         for (KVS kvs : chunk) {
                             format.write(new KV(kvs.k, kvs.v));
                         }
-                        // Envoi de l'accusé de réception
-                        oos.writeObject("ok");
                         break;
                     case CMD_DELETE:
                         break;
