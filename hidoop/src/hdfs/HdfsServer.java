@@ -1,4 +1,4 @@
-  
+
 package hdfs;
 
 import java.io.BufferedReader;
@@ -17,11 +17,12 @@ import formats.KV;
 import formats.KVFormat;
 import formats.KVS;
 import formats.Format.OpenMode;
+import hdfs.Message.Commande;
 
 public class HdfsServer {
     final static int ports[] = {8081,8082};
     final static int nb = 2;
-    final static int nbChunks = 2;
+    final static int nbChunks = 1;
     final static int tailleMaxEnvoi = 10;   
     public static void main(String args[]) {
 
@@ -42,13 +43,18 @@ public class HdfsServer {
                     case CMD_READ:  
                         System.out.println("lecture");
                         Format formatR = new KVFormat(message.getPremierNomFichier());
+                        formatR.open(Format.OpenMode.R);
+
                         // On envoie le chunk par morceaux
                         long nbLignes = Utilities.countLines(formatR.getFname());
                         long tailleChunk = nbLignes / nbChunks;
                         int nbLignesRestantes = (int) nbLignes % nbChunks;
                         int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
                         long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
+
+                        Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
                         for (int envoi = 0; envoi<nbEnvoi; envoi++) {
+                            oos.writeObject(messageContinue);
                             Chunk morceauAEnvoyer = new Chunk();
                             for (int j = 0; j<tailleEnvoi; j++) {
                                 KV kv = formatR.read();
@@ -57,6 +63,9 @@ public class HdfsServer {
                             oos.writeObject(morceauAEnvoyer);
                             System.out.println("Morceau envoye");
                         }
+                        Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
+                        oos.writeObject(messageFin);
+                        formatR.close();
                         break;
                     case CMD_WRITE:
 

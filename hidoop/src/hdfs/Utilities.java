@@ -45,10 +45,8 @@ public class Utilities {
 
    }
 
-   public static void recevoirFichier(Socket s, ObjectOutputStream oos, String localFSDestFname) throws IOException, ClassNotFoundException {
+   public static void recevoirFichier(Socket s, ObjectOutputStream oos, String localFSDestFname, Format format) throws IOException, ClassNotFoundException {
         ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
-
-        Format format = new KVFormat(localFSDestFname);
         Message messageContinuer = (Message) ois.readObject();
         System.out.print(messageContinuer.getPremierNomFichier());
         while (messageContinuer.getPremierNomFichier().equals("continue")) {
@@ -67,8 +65,8 @@ public class Utilities {
                 format.write(new KV(kvs.k, kvs.v));
             }
             messageContinuer = (Message) ois.readObject();
-            oos.close();
-            ois.close();
         }
+        oos.close();
+        ois.close();
     }
 }
