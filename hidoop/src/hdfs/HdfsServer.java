@@ -21,7 +21,8 @@ import formats.Format.OpenMode;
 public class HdfsServer {
     final static int ports[] = {8081,8082};
     final static int nb = 2;
-    
+    final static int nbChunks = 2;
+    final static int tailleMaxEnvoi = 10;   
     public static void main(String args[]) {
 
         try {
@@ -39,7 +40,23 @@ public class HdfsServer {
                 System.out.println("Réception de la commande : " + message.getCommande() + " " + message.getPremierNomFichier() + " " + message.getTaillePremierNomFichier());
                 switch (message.getCommande()) {
                     case CMD_READ:  
-                        
+                        System.out.println("lecture");
+                        Format formatR = new KVFormat(message.getPremierNomFichier());
+                        // On envoie le chunk par morceaux
+                        long nbLignes = Utilities.countLines(formatR.getFname());
+                        long tailleChunk = nbLignes / nbChunks;
+                        int nbLignesRestantes = (int) nbLignes % nbChunks;
+                        int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
+                        long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
+                        for (int envoi = 0; envoi<nbEnvoi; envoi++) {
+                            Chunk morceauAEnvoyer = new Chunk();
+                            for (int j = 0; j<tailleEnvoi; j++) {
+                                KV kv = formatR.read();
+                                morceauAEnvoyer.add(new KVS(kv.k, kv.v));
+                            }
+                            oos.writeObject(morceauAEnvoyer);
+                            System.out.println("Morceau envoye");
+                        }
                         break;
                     case CMD_WRITE:
 
