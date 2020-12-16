@@ -30,6 +30,7 @@ public class HdfsServer {
             ServerSocket ss = new ServerSocket(ports[i]);
 
             while (true) {
+                
                 System.out.println("Listening on port " + ports[i]);
                 Socket s = ss.accept();
 
@@ -46,6 +47,7 @@ public class HdfsServer {
                 oos.writeObject("ok");
                 System.out.println("Accusé de réception envoyé");
 
+                // TODO lire les morceaux de chunk arrivant tant qu'on ne recoit pas le message de fin
                 // Réception du chunk
                 Chunk chunk = new Chunk();
                 try {
@@ -55,7 +57,6 @@ public class HdfsServer {
                 }
                 System.out.println("Nombre de lignes du fichier reçu : " + chunk.size());
                 
-                // TODO ecriture du chunk dans un nouveau fichier message.getPremierNomFichier()
                 Format format = new KVFormat(message.getPremierNomFichier());
                 format.open(OpenMode.W);
                 for (KVS kvs : chunk) {

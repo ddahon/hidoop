@@ -22,6 +22,7 @@ import formats.KVFormat;
 import formats.KVS;
 import formats.LineFormat;
 import formats.Format.Type;
+import hdfs.Message.Commande;
 
 public class HdfsClient {
 
@@ -36,6 +37,7 @@ public class HdfsClient {
         System.out.println("Usage: java HdfsClient delete <file>");
     }
 
+    //TODO 
     public static void HdfsDelete(String hdfsFname) {
     }
 
@@ -74,7 +76,7 @@ public class HdfsClient {
                 String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
 
                 // Envoi du message pour initialiser la communication
-                Message messageDebut = new Message("write", HdfsFname);
+                Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
                 oos.writeObject(messageDebut);
 
                 // Attente de l'accusé de réception
@@ -99,9 +101,9 @@ public class HdfsClient {
                     }
                     oos.writeObject(lignesRestantes);
                 }
-                
+
                 // Envoi du message de fin de communication
-                Message messageFin = new Message("write", "FIN");
+                Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
                 oos.writeObject(messageFin);
 
                 // Fermeture des sockets
@@ -123,8 +125,50 @@ public class HdfsClient {
         } 
       }
 
+      // TODO
       public static void HdfsRead(String hdfsFname, String localFSDestFname) {
+        try {
+            Format format = new KVFormat(localFSDestFname);
+            format.open(Format.OpenMode.W);
 
+            // On traite les chunks l'un après l'autre
+            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
+
+                 // Ouverture des sockets
+                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                 OutputStream os = s.getOutputStream();
+                 InputStream is = s.getInputStream();
+                 ObjectOutputStream oos = new ObjectOutputStream(os);
+                 ObjectInputStream ois = new ObjectInputStream(is);
+
+                // Envoi du message pour initialiser la communication
+                Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
+                oos.writeObject(messageDebut);
+
+                // Attente de l'accusé de réception
+                ois.readObject();
+                
+                // Envoi du message de fin de communication
+                Message messageFin = new Message(Commande.CMD_READ, "FIN");
+                oos.writeObject(messageFin);
+
+                // Fermeture des sockets
+                s.close();
+                os.close();
+                is.close();
+                oos.close();
+                ois.close();
+            }
+
+            format.close();
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
 	
