@@ -75,9 +75,8 @@ public class HdfsClient {
                 String[] cheminDecoupe = fname.split("/");
                 String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
 
-                // Envoi du message pour initialiser la communication
+                // Message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
-                oos.writeObject(messageDebut);
 
                 // Attente de l'accusé de réception
                 ois.readObject();
@@ -89,6 +88,7 @@ public class HdfsClient {
                         KV kv = format.read();
                         morceauAEnvoyer.add(new KVS(kv.k, kv.v));
                     }
+                    oos.writeObject(messageDebut);
                     oos.writeObject(morceauAEnvoyer);
                 }
 
@@ -99,6 +99,7 @@ public class HdfsClient {
                         KV kv = format.read();
                         lignesRestantes.add(new KVS(kv.k, kv.v));
                     }
+                    oos.writeObject(messageDebut);
                     oos.writeObject(lignesRestantes);
                 }
 
