@@ -103,10 +103,6 @@ public class HdfsClient {
                     oos.writeObject(lignesRestantes);
                 }
 
-                // Envoi du message de fin de communication
-                Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
-                oos.writeObject(messageFin);
-
                 // Fermeture des sockets
                 s.close();
                 os.close();
