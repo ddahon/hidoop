@@ -28,11 +28,10 @@ public class HdfsServer {
             int i = Integer.parseInt(args[0]);
 
             ServerSocket ss = new ServerSocket(ports[i]);
-            Socket s = ss.accept();
             while (true) {
 
                 System.out.println("Listening on port " + ports[i]);
-
+                Socket s = ss.accept();
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                 ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
 
@@ -70,6 +69,7 @@ public class HdfsServer {
                 }
                 oos.close();
                 ois.close();
+                s.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
