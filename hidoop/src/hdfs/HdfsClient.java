@@ -29,7 +29,7 @@ public class HdfsClient {
     final static String[] hosts = {"localhost", "localhost"};
     final static int[] ports = { 8081, 8082 };
     final static int nbChunks = 2;
-    final static int tailleMaxEnvoi = 10000;
+    final static int tailleMaxEnvoi = 10;
 
     private static void usage() {
         System.out.println("Usage: java HdfsClient read <file>");
@@ -64,29 +64,34 @@ public class HdfsClient {
             // On traite les chunks l'un après l'autre
             for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
 
-                 // Ouverture des sockets
-                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
-                 OutputStream os = s.getOutputStream();
-                 InputStream is = s.getInputStream();
-                 ObjectOutputStream oos = new ObjectOutputStream(os);
-                 ObjectInputStream ois = new ObjectInputStream(is);
-
                 // On préfixe le nom du fichier par le numéro de chunk
                 String[] cheminDecoupe = fname.split("/");
                 String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
 
+                // Ouverture des sockets
+                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                OutputStream os = s.getOutputStream();
+                InputStream is = s.getInputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(os);
+                ObjectInputStream ois = new ObjectInputStream(is);
+
                 // Message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
+                oos.writeObject(messageDebut);
 
                 // On envoie le chunk par morceaux
                 for (int envoi = 0; envoi<nbEnvoi; envoi++) {
+                    Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
+
                     Chunk morceauAEnvoyer = new Chunk();
                     for (long i = 0; i<tailleEnvoi; i++) {
                         KV kv = format.read();
                         morceauAEnvoyer.add(new KVS(kv.k, kv.v));
                     }
-                    oos.writeObject(messageDebut);
+                    oos.writeObject(messageContinue);
                     oos.writeObject(morceauAEnvoyer);
+                    System.out.println("Morceau envoye");
+
                 }
 
                 // On met les éventuelles lignes restantes dans le dernier chunk
@@ -98,7 +103,11 @@ public class HdfsClient {
                     }
                     oos.writeObject(messageDebut);
                     oos.writeObject(lignesRestantes);
+                    System.out.println("Lignes restantes envoyées");
                 }
+                // Message de fin
+                Message messageContinue = new Message(Commande.CMD_WRITE, "fin");
+                oos.writeObject(messageContinue);
 
                 // Fermeture des sockets
                 s.close();
@@ -137,10 +146,6 @@ public class HdfsClient {
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
                 oos.writeObject(messageDebut);
                 
-                // Envoi du message de fin de communication
-                Message messageFin = new Message(Commande.CMD_READ, "FIN");
-                oos.writeObject(messageFin);
-
                 // Fermeture des sockets
                 s.close();
                 os.close();
