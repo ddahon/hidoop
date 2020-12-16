@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -77,9 +78,9 @@ public class KVFormat implements Format {
 	public void write(KV record) {
 		try {
 			String s = record.k+KV.SEPARATOR+record.v;
-			bw.write(s, 0, s.length());
-			bw.newLine();
-			bw.flush();
+			FileWriter fw = new FileWriter(this.fname);
+			fw.write(s);
+			fw.close();
 			index += s.length();
 		} catch (IOException e) {
 			e.printStackTrace();
