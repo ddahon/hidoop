@@ -26,50 +26,52 @@ public class HdfsServer {
         try {
 
             int i = Integer.parseInt(args[0]);
-
+            System.out.println("Listening on port " + ports[i]);
             ServerSocket ss = new ServerSocket(ports[i]);
-            Socket s = ss.accept();
+
             while (true) {
-
-                System.out.println("Listening on port " + ports[i]);
-
+                Socket s = ss.accept();
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                 ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
 
-                // Réception du message envoyé par HdfsClient
                 Message message = (Message) ois.readObject();
                 System.out.println("Réception de la commande : " + message.getCommande() + " " + message.getPremierNomFichier() + " " + message.getTaillePremierNomFichier());
-                
                 switch (message.getCommande()) {
                     case CMD_READ:  
                         
                         break;
                     case CMD_WRITE:
-                        System.out.println("Mode:Ecriture");
-                        System.out.println("Accusé de réception envoyé");
 
-                        // Réception du chunk
-                        Chunk chunk = new Chunk();
-                        try {
-                            chunk = (Chunk) ois.readObject();
-                        } catch (EOFException e) {
-                            System.out.println("Fichier reçu");
-                        }
-                        System.out.println("Nombre de lignes du fichier reçu : " + chunk.size());
-                        
+                        System.out.println("Mode:Ecriture");
                         Format format = new KVFormat(message.getPremierNomFichier());
                         format.open(OpenMode.W);
-                        for (KVS kvs : chunk) {
-                            format.write(new KV(kvs.k, kvs.v));
+                        Message messageContinuer = (Message) ois.readObject();
+                        System.out.print(messageContinuer.getPremierNomFichier());
+                        while (messageContinuer.getPremierNomFichier().equals("continue")) {
+                            // Réception du chunk
+                            Chunk chunk = new Chunk();
+                            try {
+                                System.out.println("Attente d'un morceau");
+                                chunk = (Chunk) ois.readObject();
+                                System.out.println("Reception d'un morceau");
+                            } catch (EOFException e) {
+                            System.out.println("Morceau reçu");
+                            }
+                            System.out.println("Nombre de lignes du fichier reçu : " + chunk.size());
+                        
+                            for (KVS kvs : chunk) {
+                                format.write(new KV(kvs.k, kvs.v));
+                            }
+
+                            messageContinuer = (Message) ois.readObject();
                         }
+                        format.close();
                         break;
                     case CMD_DELETE:
                         break;
-                    default:
-                        break;
+                 
                 }
-                oos.close();
-                ois.close();
+                s.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
