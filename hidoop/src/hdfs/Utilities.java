@@ -45,64 +45,6 @@ public class Utilities {
 
    }
 
-   public static void envoyer_fichier( Format format, ObjectOutputStream oos) {
-        format.open(Format.OpenMode.R);
-        String fname = format.getFname();
-
-        // Lecture du fichier
-        long nbLignes;
-        try {
-            nbLignes = Utilities.countLines(fname);
-            long tailleChunk = nbLignes / nbChunks;
-            int nbLignesRestantes = (int) nbLignes % nbChunks;
-            int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
-            long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
-            System.out.println("Nombre de lignes : " + nbLignes);
-
-            // On traite les chunks l'un après l'autre
-            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-
-                // On préfixe le nom du fichier par le numéro de chunk
-                String[] cheminDecoupe = fname.split("/");
-                String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
-
-                // Message pour initialiser la communication
-                Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
-                oos.writeObject(messageDebut);
-                // On envoie le chunk par morceaux
-                for (int envoi = 0; envoi<nbEnvoi; envoi++) {
-                    Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
-
-                    Chunk morceauAEnvoyer = new Chunk();
-                    for (long i = 0; i<tailleEnvoi; i++) {
-                        KV kv = format.read();
-                        morceauAEnvoyer.add(new KVS(kv.k, kv.v));
-                    }
-                    oos.writeObject(messageContinue);
-                    oos.writeObject(morceauAEnvoyer);
-                    System.out.println("Morceau envoye");
-                }
-                // On met les éventuelles lignes restantes dans le dernier chunk
-                if (numeroChunk == nbChunks-1 && nbLignesRestantes > 0) {
-                    Chunk lignesRestantes = new Chunk();
-                    for (int i = 0; i<nbLignesRestantes; i++) {
-                        KV kv = format.read();
-                        lignesRestantes.add(new KVS(kv.k, kv.v));
-                    }
-                    oos.writeObject(messageDebut);
-                    oos.writeObject(lignesRestantes);
-                    System.out.println("Lignes restantes envoyées");
-                }
-                // Message de fin
-                Message messageContinue = new Message(Commande.CMD_WRITE, "fin");
-                oos.writeObject(messageContinue);
-            }
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-   }
-
    public static void recevoirFichier(Socket s, ObjectOutputStream oos, String localFSDestFname) throws IOException, ClassNotFoundException {
         ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
 

@@ -66,22 +66,21 @@ public class HdfsClient {
 
                 // On préfixe le nom du fichier par le numéro de chunk
                 String[] cheminDecoupe = fname.split("/");
-                String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1]; 
-
+                String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
+                
                 // Ouverture des sockets
                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
-                OutputStream os = s.getOutputStream();
-                InputStream is = s.getInputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(os);
-                ObjectInputStream ois = new ObjectInputStream(is);
+                ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
                 // Message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
                 oos.writeObject(messageDebut);
 
                 // On envoie le chunk par morceaux
+                Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
+
+                // On envoie le chunk par morceaux
                 for (int envoi = 0; envoi<nbEnvoi; envoi++) {
-                    Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
 
                     Chunk morceauAEnvoyer = new Chunk();
                     for (long i = 0; i<tailleEnvoi; i++) {
@@ -101,29 +100,26 @@ public class HdfsClient {
                         KV kv = format.read();
                         lignesRestantes.add(new KVS(kv.k, kv.v));
                     }
-                    oos.writeObject(messageDebut);
+                    oos.writeObject(messageContinue);
                     oos.writeObject(lignesRestantes);
                     System.out.println("Lignes restantes envoyées");
                 }
                 // Message de fin
-                Message messageContinue = new Message(Commande.CMD_WRITE, "fin");
-                oos.writeObject(messageContinue);
+                Message messageFin = new Message(Commande.CMD_WRITE, "fin");
+                oos.writeObject(messageFin);
 
                 // Fermeture des sockets
                 s.close();
-                os.close();
-                is.close();
                 oos.close();
-                ois.close();
             }
-
-            format.close();
-
+            
+        format.close();
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
       }
 
       // TODO
@@ -135,34 +131,29 @@ public class HdfsClient {
             // On traite les chunks l'un après l'autre
             for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
 
-                 // Ouverture des sockets
-                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
-                 OutputStream os = s.getOutputStream();
-                 InputStream is = s.getInputStream();
-                 ObjectOutputStream oos = new ObjectOutputStream(os);
-                 ObjectInputStream ois = new ObjectInputStream(is);
+                // Ouverture des sockets
+                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
                 // Envoi du message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
                 oos.writeObject(messageDebut);
                 
+                // réception et écriture du fichier dans le FS local
+                Utilities.recevoirFichier(s, oos, localFSDestFname);
+                
                 // Fermeture des sockets
                 s.close();
-                os.close();
-                is.close();
-                oos.close();
-                ois.close();
             }
-
             format.close();
-
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
-
 	
     public static void main(String[] args) {
         // java HdfsClient <read|write> <line|kv> <file>
