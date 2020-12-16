@@ -70,7 +70,6 @@ public class HdfsServer {
                 }
                 oos.close();
                 ois.close();
-                s.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
