@@ -1,19 +1,15 @@
-/* 
- */
+/*
+@author Doryan Dahon @ddahon
+Cette classe permet de communiquer avec les HdfsServer
+Ses méthodes peuvent être appelées directement ou bien via l'interface en ligne de commande
+*/
 
 package hdfs;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import javax.naming.CommunicationException;
 
 import formats.Format;
@@ -37,10 +33,28 @@ public class HdfsClient {
         System.out.println("Usage: java HdfsClient delete <file>");
     }
 
-    //TODO 
+    /* Supprime le fichier hdfsFname du système HDFS 
+    */
     public static void HdfsDelete(String hdfsFname) {
+        for (int numeroChunk = 0; numeroChunk<nbChunks; numeroChunk++) {
+            try {
+                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+                Message messageDelete = new Message(Commande.CMD_DELETE, numeroChunk+hdfsFname);
+                oos.writeObject(messageDelete);
+                s.close();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
+    /* 
+    Ecrit un fichier dans le système HDFS 
+    Le fichier est lu localement depuis localFSSourceFname au format fmt
+    */
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor)
             throws CommunicationException {
         try {
@@ -52,8 +66,6 @@ public class HdfsClient {
                 format = new LineFormat(fname);
             }
             format.open(Format.OpenMode.R);
-
-            // Lecture du fichier
             long nbLignes = Utilities.countLines(fname);
             long tailleChunk = nbLignes / nbChunks;
             int nbLignesRestantes = (int) nbLignes % nbChunks;
@@ -66,22 +78,17 @@ public class HdfsClient {
 
                 // On préfixe le nom du fichier par le numéro de chunk
                 String[] cheminDecoupe = fname.split("/");
-                String HdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
-                
-                // Ouverture des sockets
+                String hdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
+
                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
-                // Message pour initialiser la communication
-                Message messageDebut = new Message(Commande.CMD_WRITE, HdfsFname);
+                Message messageDebut = new Message(Commande.CMD_WRITE, hdfsFname);
                 oos.writeObject(messageDebut);
-
-                // On envoie le chunk par morceaux
                 Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
 
                 // On envoie le chunk par morceaux
                 for (int envoi = 0; envoi<nbEnvoi; envoi++) {
-
                     Chunk morceauAEnvoyer = new Chunk();
                     for (long i = 0; i<tailleEnvoi; i++) {
                         KV kv = format.read();
@@ -90,7 +97,6 @@ public class HdfsClient {
                     oos.writeObject(messageContinue);
                     oos.writeObject(morceauAEnvoyer);
                     System.out.println("Morceau envoye");
-
                 }
 
                 // On met les éventuelles lignes restantes dans le dernier chunk
@@ -104,11 +110,10 @@ public class HdfsClient {
                     oos.writeObject(lignesRestantes);
                     System.out.println("Lignes restantes envoyées");
                 }
-                // Message de fin
+
                 Message messageFin = new Message(Commande.CMD_WRITE, "fin");
                 oos.writeObject(messageFin);
 
-                // Fermeture des sockets
                 s.close();
                 oos.close();
             }
@@ -122,27 +127,26 @@ public class HdfsClient {
         
       }
 
-      // TODO
-      public static void HdfsRead(String hdfsFname, String localFSDestFname) {
+    /*
+    Lit un fichier stocké dans le système HDFS
+    Le nom du fichier à lire est hdfsFname
+    Après lecture, il est stocké localement dans le fichier localFSDestFname
+    */
+    public static void HdfsRead(String hdfsFname, String localFSDestFname) {
         try {
             Format format = new KVFormat(localFSDestFname);
             format.open(Format.OpenMode.W);
 
-            // On traite les chunks l'un après l'autre
             for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-
-                // Ouverture des sockets
                 Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
-                // Envoi du message pour initialiser la communication
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
                 oos.writeObject(messageDebut);
                 
-                // réception et écriture du fichier dans le FS local
+                // Réception et écriture du fichier dans le FS local
                 Utilities.recevoirFichier(s, oos, localFSDestFname, format);
                 
-                // Fermeture des sockets
                 s.close();
             }
             format.close();
@@ -162,7 +166,7 @@ public class HdfsClient {
             if (args.length<2) {usage(); return;}
 
             switch (args[0]) {
-              case "read": HdfsRead(args[1], args[2]); break;
+              case "read": HdfsRead(args[1], args[1]); break;
               case "delete": HdfsDelete(args[1]); break;
               case "write": 
                 Format.Type fmt;
