@@ -156,7 +156,7 @@ public class HdfsClient {
                 oos.writeObject(messageDebut);
                 
                 // Réception et écriture du fichier dans le FS local
-                Utilities.recevoirFichier(s, oos, localFSDestFname, format);
+                Utilities.recevoirFichier(s, format);
                 
                 s.close();
             }

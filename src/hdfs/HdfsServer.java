@@ -84,31 +84,20 @@ public class HdfsServer {
                         Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
                         oos.writeObject(messageFin);
                         formatR.close();
+                        s.close();
                         break;
                     case CMD_WRITE:
                         Format format = new KVFormat(message.getPremierNomFichier());
                         format.open(OpenMode.W);
-                        while (((Message) ois.readObject()).getPremierNomFichier().equals("continue")) {
-                            // Réception du chunk
-                            Chunk chunk = new Chunk();
-                            try {
-                                chunk = (Chunk) ois.readObject();
-                            } catch (EOFException e) {
-                            System.out.println("Morceau reçu");
-                            }
-                            System.out.println("Nombre de lignes reçues : " + chunk.size());
-                        
-                            for (KVS kvs : chunk) {
-                                format.write(new KV(kvs.k, kvs.v));
-                            }
-                        }
+                        Utilities.recevoirFichier(s, format);
                         format.close();
+                        s.close();
                         break;
                     case CMD_DELETE:
+                        
                         break;
                  
                 }
-                s.close();
                 System.out.println("Connexion fermée\n");
             }
         } catch (Exception e) {
