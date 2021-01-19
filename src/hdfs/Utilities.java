@@ -51,9 +51,7 @@ public class Utilities {
             // Réception du chunk
             Chunk chunk = new Chunk();
             try {
-                System.out.println("Attente d'un morceau");
                 chunk = (Chunk) ois.readObject();
-                System.out.println("Reception d'un morceau");
             } catch (EOFException e) {
             System.out.println("Morceau reçu");
             }

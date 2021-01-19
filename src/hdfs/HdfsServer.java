@@ -12,6 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 
+import config.Project;
 import formats.Format;
 import formats.KV;
 import formats.KVFormat;
@@ -21,9 +22,7 @@ import hdfs.Message.Commande;
 
 public class HdfsServer {
     private int port;
-    final static int nb = 2;
-    final static int nbChunks = 1;
-    final static int tailleMaxEnvoi = 10;  
+    final static int tailleMaxEnvoi = Project.tailleMaxEnvoi;  
     
     public static void usage() {
         System.out.println("Usage : java HdfsServer <port>");

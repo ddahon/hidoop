@@ -23,7 +23,7 @@ import config.Project;
 
 public class HdfsClient {
 
-    final static int tailleMaxEnvoi = 10;
+    final static int tailleMaxEnvoi = Project.tailleMaxEnvoi;
 
     private static void usage() {
         System.out.println("Usage: java HdfsClient read <hdfsFname> <localFSDestFname>");
@@ -69,8 +69,8 @@ public class HdfsClient {
             long nbLignesRestantes = nbLignes % Project.nbNodes;
             int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi); // Nombre d'envois pour 1 chunk
             long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);   // Taille d'un envoi pour 1 chunk
-            int resteChunk = (int) tailleChunk % (int) tailleEnvoi;    // Dernières lignes du chunk à envoyer
-            System.out.println("Nombre de lignes : " + nbLignes);
+            long resteChunk = tailleChunk % tailleEnvoi;    // Dernières lignes du chunk à envoyer
+            System.out.println("Nombre de lignes à envoyer : " + nbLignes);
 
             // On traite les chunks l'un après l'autre
             for (int numeroChunk = 0; numeroChunk < Project.nbNodes; numeroChunk++) {
@@ -93,10 +93,9 @@ public class HdfsClient {
                         KV kv = format.read();
                         morceauAEnvoyer.add(new KVS(kv.k, kv.v));
                     }
-                    nbLignesRestantes -= morceauAEnvoyer.size();
                     oos.writeObject(messageContinue);
                     oos.writeObject(morceauAEnvoyer);
-                    System.out.println("Morceau envoye");
+                    System.out.println("Morceau envoyé");
                 }
 
                 // Envoi des dernières lignes du chunk si la taille d'un chunk n'était pas divisible par la taille des envois 
