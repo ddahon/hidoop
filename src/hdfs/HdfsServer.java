@@ -26,7 +26,7 @@ public class HdfsServer {
     final static int tailleMaxEnvoi = 10;  
     
     public static void usage() {
-        System.out.println("Usage : java HdfsServer <host> <port>");
+        System.out.println("Usage : java HdfsServer <port>");
     }
 
     public HdfsServer(int port) {

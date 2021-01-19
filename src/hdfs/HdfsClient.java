@@ -19,12 +19,10 @@ import formats.KVS;
 import formats.LineFormat;
 import formats.Format.Type;
 import hdfs.Message.Commande;
+import config.Project;
 
 public class HdfsClient {
 
-    final static String[] hosts = {"localhost", "localhost"};
-    final static int[] ports = { 8081, 8082 };
-    final static int nbChunks = 2;
     final static int tailleMaxEnvoi = 10;
 
     private static void usage() {
@@ -36,9 +34,9 @@ public class HdfsClient {
     /* Supprime le fichier hdfsFname du système HDFS 
     */
     public static void HdfsDelete(String hdfsFname) {
-        for (int numeroChunk = 0; numeroChunk<nbChunks; numeroChunk++) {
+        for (int numeroChunk = 0; numeroChunk<Project.nbNodes; numeroChunk++) {
             try {
-                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                 Message messageDelete = new Message(Commande.CMD_DELETE, numeroChunk+hdfsFname);
                 oos.writeObject(messageDelete);
@@ -67,20 +65,20 @@ public class HdfsClient {
             }
             format.open(Format.OpenMode.R);
             long nbLignes = Utilities.countLines(fname);
-            long tailleChunk = nbLignes / nbChunks;
-            int nbLignesRestantes = (int) nbLignes % nbChunks;
+            long tailleChunk = nbLignes / Project.nbNodes;
+            int nbLignesRestantes = (int) nbLignes % Project.nbNodes;
             int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
             long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
             System.out.println("Nombre de lignes : " + nbLignes);
 
             // On traite les chunks l'un après l'autre
-            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
+            for (int numeroChunk = 0; numeroChunk < Project.nbNodes; numeroChunk++) {
 
                 // On préfixe le nom du fichier par le numéro de chunk
                 String[] cheminDecoupe = fname.split("/");
                 String hdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
 
-                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
                 Message messageDebut = new Message(Commande.CMD_WRITE, hdfsFname);
@@ -100,7 +98,7 @@ public class HdfsClient {
                 }
 
                 // On met les éventuelles lignes restantes dans le dernier chunk
-                if (numeroChunk == nbChunks-1 && nbLignesRestantes > 0) {
+                if (numeroChunk == Project.nbNodes-1 && nbLignesRestantes > 0) {
                     Chunk lignesRestantes = new Chunk();
                     for (int i = 0; i<nbLignesRestantes; i++) {
                         KV kv = format.read();
@@ -137,8 +135,8 @@ public class HdfsClient {
             Format format = new KVFormat(localFSDestFname);
             format.open(Format.OpenMode.W);
 
-            for (int numeroChunk = 0; numeroChunk < nbChunks; numeroChunk++) {
-                Socket s = new Socket(hosts[numeroChunk], ports[numeroChunk]);
+            for (int numeroChunk = 0; numeroChunk < Project.nbNodes; numeroChunk++) {
+                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
