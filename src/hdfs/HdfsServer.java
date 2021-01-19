@@ -63,8 +63,13 @@ public class HdfsServer {
                         s.close();
                         break;
                     case CMD_DELETE:
-                        File f = new File(message.getPremierNomFichier());
-                        f.delete();
+                        Thread t = new Thread() {
+                            public void run(){
+                                File f = new File(message.getPremierNomFichier());
+                                f.delete();
+                            }
+                        };
+                        t.start();
                         break;
                  
                 }
