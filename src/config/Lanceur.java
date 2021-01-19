@@ -16,7 +16,6 @@ public class Lanceur {
             for (int i=0; i<Project.nbNodes; i++) {
                 String sshArgs = "ddahon@" + Project.hosts[i] + ".enseeiht.fr cd "+Project.serverPathToHidoop+";java -cp bin/ hdfs.HdfsServer " + Project.ports[i];
                 ProcessBuilder processBuilder = new ProcessBuilder("ssh", sshArgs);
-                processBuilder.redirectOutput(Redirect.)
                 Process process = processBuilder.start();
                 int ret = process.waitFor();
                 System.out.println(ret);
