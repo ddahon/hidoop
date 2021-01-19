@@ -36,19 +36,20 @@ public class HdfsServer {
 
     public void launch() {
         try {
-            System.out.println("Listening on port " + this.port);
             ServerSocket ss = new ServerSocket(this.port);
 
             while (true) {
+                System.out.println("Listening on port " + this.port);
                 Socket s = ss.accept();
+                System.out.println("Connexion établie avec "+s.getInetAddress());
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                 ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
 
                 Message message = (Message) ois.readObject();
-                System.out.println("Réception de la commande : " + message.getCommande() + " " + message.getPremierNomFichier() + " " + message.getTaillePremierNomFichier());
+                System.out.println("Réception de la commande : " + message.getCommande() + " " + message.getPremierNomFichier());
                 switch (message.getCommande()) {
                     case CMD_READ:  
-                        System.out.println("lecture");
+                        System.out.println("Mode: lecture");
                         Format formatR = new KVFormat(message.getPremierNomFichier());
                         formatR.open(Format.OpenMode.R);
 
@@ -76,12 +77,10 @@ public class HdfsServer {
                         break;
                     case CMD_WRITE:
 
-                        System.out.println("Mode:Ecriture");
+                        System.out.println("Mode: écriture");
                         Format format = new KVFormat(message.getPremierNomFichier());
                         format.open(OpenMode.W);
-                        Message messageContinuer = (Message) ois.readObject();
-                        System.out.print(messageContinuer.getPremierNomFichier());
-                        while (messageContinuer.getPremierNomFichier().equals("continue")) {
+                        while (((Message) ois.readObject()).getPremierNomFichier().equals("continue")) {
                             // Réception du chunk
                             Chunk chunk = new Chunk();
                             try {
@@ -96,8 +95,6 @@ public class HdfsServer {
                             for (KVS kvs : chunk) {
                                 format.write(new KV(kvs.k, kvs.v));
                             }
-
-                            messageContinuer = (Message) ois.readObject();
                         }
                         format.close();
                         break;
@@ -106,6 +103,7 @@ public class HdfsServer {
                  
                 }
                 s.close();
+                System.out.println("Connexion fermée\n");
             }
         } catch (Exception e) {
             e.printStackTrace();

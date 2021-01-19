@@ -66,9 +66,10 @@ public class HdfsClient {
             format.open(Format.OpenMode.R);
             long nbLignes = Utilities.countLines(fname);
             long tailleChunk = nbLignes / Project.nbNodes;
-            int nbLignesRestantes = (int) nbLignes % Project.nbNodes;
-            int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
-            long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
+            long nbLignesRestantes = nbLignes % Project.nbNodes;
+            int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi); // Nombre d'envois pour 1 chunk
+            long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);   // Taille d'un envoi pour 1 chunk
+            int resteChunk = (int) tailleChunk % (int) tailleEnvoi;    // Dernières lignes du chunk à envoyer
             System.out.println("Nombre de lignes : " + nbLignes);
 
             // On traite les chunks l'un après l'autre
@@ -92,9 +93,22 @@ public class HdfsClient {
                         KV kv = format.read();
                         morceauAEnvoyer.add(new KVS(kv.k, kv.v));
                     }
+                    nbLignesRestantes -= morceauAEnvoyer.size();
                     oos.writeObject(messageContinue);
                     oos.writeObject(morceauAEnvoyer);
                     System.out.println("Morceau envoye");
+                }
+
+                // Envoi des dernières lignes du chunk si la taille d'un chunk n'était pas divisible par la taille des envois 
+                if (resteChunk>0) {
+                    Chunk lignesRestantes = new Chunk();
+                    for (int i = 0; i<resteChunk; i++) {
+                        KV kv = format.read();
+                        lignesRestantes.add(new KVS(kv.k, kv.v));
+                    }
+                    oos.writeObject(messageContinue);
+                    oos.writeObject(lignesRestantes);
+                    System.out.println("Lignes restantes du chunk envoyées");
                 }
 
                 // On met les éventuelles lignes restantes dans le dernier chunk
