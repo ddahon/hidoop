@@ -3,6 +3,7 @@ package hdfs;
 
 import java.io.BufferedReader;
 import java.io.EOFException;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -62,7 +63,8 @@ public class HdfsServer {
                         s.close();
                         break;
                     case CMD_DELETE:
-                        //TODO
+                        File f = new File(message.getPremierNomFichier());
+                        f.delete();
                         break;
                  
                 }
