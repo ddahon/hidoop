@@ -45,8 +45,7 @@ public class Utilities {
 
    }
 
-   public static void recevoirFichier(Socket s, Format format) throws IOException, ClassNotFoundException {
-        ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+   public static void recevoirFichier(ObjectInputStream ois, Format format) throws IOException, ClassNotFoundException {
         while (((Message) ois.readObject()).getPremierNomFichier().equals("continue")) {
             // Réception du chunk
             Chunk chunk = new Chunk();

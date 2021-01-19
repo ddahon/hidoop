@@ -89,7 +89,7 @@ public class HdfsServer {
                     case CMD_WRITE:
                         Format format = new KVFormat(message.getPremierNomFichier());
                         format.open(OpenMode.W);
-                        Utilities.recevoirFichier(s, format);
+                        Utilities.recevoirFichier(ois, format);
                         format.close();
                         s.close();
                         break;

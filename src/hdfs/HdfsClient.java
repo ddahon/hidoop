@@ -7,6 +7,7 @@ Ses méthodes peuvent être appelées directement ou bien via l'interface en lig
 package hdfs;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -151,12 +152,12 @@ public class HdfsClient {
             for (int numeroChunk = 0; numeroChunk < Project.nbNodes; numeroChunk++) {
                 Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
-
+                ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
                 Message messageDebut = new Message(Commande.CMD_READ, numeroChunk + hdfsFname);
                 oos.writeObject(messageDebut);
                 
                 // Réception et écriture du fichier dans le FS local
-                Utilities.recevoirFichier(s, format);
+                Utilities.recevoirFichier(ois, format);
                 
                 s.close();
             }
