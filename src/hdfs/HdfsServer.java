@@ -49,16 +49,14 @@ public class HdfsServer {
                 System.out.println("Réception de la commande : " + message.getCommande() + " " + message.getPremierNomFichier());
                 switch (message.getCommande()) {
                     case CMD_READ:  
-                        System.out.println("Mode: lecture");
                         Format formatR = new KVFormat(message.getPremierNomFichier());
                         formatR.open(Format.OpenMode.R);
 
                         // On envoie le chunk par morceaux
                         long nbLignes = Utilities.countLines(formatR.getFname());
-                        long tailleChunk = nbLignes / nbChunks;
-                        int nbLignesRestantes = (int) nbLignes % nbChunks;
-                        int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi);
-                        long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);
+                        int nbEnvoi = (int) Math.max(1, nbLignes/tailleMaxEnvoi); 
+                        long tailleEnvoi = Math.min(nbLignes, tailleMaxEnvoi); 
+                        int reste = (int) nbLignes % (int) tailleEnvoi;    // Dernières lignes à envoyer
 
                         Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
                         for (int envoi = 0; envoi<nbEnvoi; envoi++) {
@@ -71,26 +69,35 @@ public class HdfsServer {
                             oos.writeObject(morceauAEnvoyer);
                             System.out.println("Morceau envoye");
                         }
+
+                        // Envoi des dernières lignes si la taille du fichier n'était pas divisible par la taille d'un envoi
+                        if (reste>0) {
+                            Chunk lignesRestantes = new Chunk();
+                            for (int i = 0; i<reste; i++) {
+                                KV kv = formatR.read();
+                                lignesRestantes.add(new KVS(kv.k, kv.v));
+                            }
+                            oos.writeObject(messageContinue);
+                            oos.writeObject(lignesRestantes);
+                            System.out.println("Lignes restantes envoyées");
+                        }
+
                         Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
                         oos.writeObject(messageFin);
                         formatR.close();
                         break;
                     case CMD_WRITE:
-
-                        System.out.println("Mode: écriture");
                         Format format = new KVFormat(message.getPremierNomFichier());
                         format.open(OpenMode.W);
                         while (((Message) ois.readObject()).getPremierNomFichier().equals("continue")) {
                             // Réception du chunk
                             Chunk chunk = new Chunk();
                             try {
-                                System.out.println("Attente d'un morceau");
                                 chunk = (Chunk) ois.readObject();
-                                System.out.println("Reception d'un morceau");
                             } catch (EOFException e) {
                             System.out.println("Morceau reçu");
                             }
-                            System.out.println("Nombre de lignes du fichier reçu : " + chunk.size());
+                            System.out.println("Nombre de lignes reçues : " + chunk.size());
                         
                             for (KVS kvs : chunk) {
                                 format.write(new KV(kvs.k, kvs.v));

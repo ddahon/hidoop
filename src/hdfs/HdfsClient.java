@@ -26,7 +26,7 @@ public class HdfsClient {
     final static int tailleMaxEnvoi = 10;
 
     private static void usage() {
-        System.out.println("Usage: java HdfsClient read <file>");
+        System.out.println("Usage: java HdfsClient read <hdfsFname> <localFSDestFname>");
         System.out.println("Usage: java HdfsClient write <line|kv> <file>");
         System.out.println("Usage: java HdfsClient delete <file>");
     }
@@ -172,13 +172,14 @@ public class HdfsClient {
     }
 	
     public static void main(String[] args) {
-        // java HdfsClient <read|write> <line|kv> <file>
+        // java HdfsClient write <line|kv> <file>
+        // java HdfsClient read <hdfsFname> <localFSDestFname>
 
         try {
             if (args.length<2) {usage(); return;}
 
             switch (args[0]) {
-              case "read": HdfsRead(args[1], args[1]); break;
+              case "read": HdfsRead(args[1], args[2]); break;
               case "delete": HdfsDelete(args[1]); break;
               case "write": 
                 Format.Type fmt;
