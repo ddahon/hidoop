@@ -50,51 +50,19 @@ public class HdfsServer {
                     case CMD_READ:  
                         Format formatR = new KVFormat(message.getPremierNomFichier());
                         formatR.open(Format.OpenMode.R);
-
-                        // On envoie le chunk par morceaux
-                        long nbLignes = Utilities.countLines(formatR.getFname());
-                        int nbEnvoi = (int) Math.max(1, nbLignes/tailleMaxEnvoi); 
-                        long tailleEnvoi = Math.min(nbLignes, tailleMaxEnvoi); 
-                        int reste = (int) nbLignes % (int) tailleEnvoi;    // Dernières lignes à envoyer
-
-                        Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
-                        for (int envoi = 0; envoi<nbEnvoi; envoi++) {
-                            oos.writeObject(messageContinue);
-                            Chunk morceauAEnvoyer = new Chunk();
-                            for (int j = 0; j<tailleEnvoi; j++) {
-                                KV kv = formatR.read();
-                                morceauAEnvoyer.add(new KVS(kv.k, kv.v));
-                            }
-                            oos.writeObject(morceauAEnvoyer);
-                            System.out.println("Morceau envoye");
-                        }
-
-                        // Envoi des dernières lignes si la taille du fichier n'était pas divisible par la taille d'un envoi
-                        if (reste>0) {
-                            Chunk lignesRestantes = new Chunk();
-                            for (int i = 0; i<reste; i++) {
-                                KV kv = formatR.read();
-                                lignesRestantes.add(new KVS(kv.k, kv.v));
-                            }
-                            oos.writeObject(messageContinue);
-                            oos.writeObject(lignesRestantes);
-                            System.out.println("Lignes restantes envoyées");
-                        }
-
-                        Message messageFin = new Message(Commande.CMD_WRITE, "FIN");
-                        oos.writeObject(messageFin);
+                        Utilities.envoyerFichierAuClient(message.getPremierNomFichier(), formatR, oos);
                         formatR.close();
                         s.close();
                         break;
                     case CMD_WRITE:
-                        Format format = new KVFormat(message.getPremierNomFichier());
-                        format.open(OpenMode.W);
-                        Utilities.recevoirFichier(ois, format);
-                        format.close();
+                        Format formatW = new KVFormat(message.getPremierNomFichier());
+                        formatW.open(OpenMode.W);
+                        Utilities.recevoirFichier(ois, formatW);
+                        formatW.close();
                         s.close();
                         break;
                     case CMD_DELETE:
-                        
+                        //TODO
                         break;
                  
                 }

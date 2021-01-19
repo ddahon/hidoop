@@ -32,7 +32,9 @@ public class HdfsClient {
         System.out.println("Usage: java HdfsClient delete <file>");
     }
 
-    /* Supprime le fichier hdfsFname du système HDFS 
+    /** 
+     * Supprime un fichier du système HDFS 
+     * @param hdfsFname le fichier à supprimer
     */
     public static void HdfsDelete(String hdfsFname) {
         for (int numeroChunk = 0; numeroChunk<Project.nbNodes; numeroChunk++) {
@@ -50,9 +52,13 @@ public class HdfsClient {
         }
     }
 
-    /* 
-    Ecrit un fichier dans le système HDFS 
-    Le fichier est lu localement depuis localFSSourceFname au format fmt
+    /** 
+     * Ecrit un fichier dans le système HDFS 
+     * Le fichier est lu localement depuis localFSSourceFname au format fmt
+     * Il est découpé en chunks puis envoyé aux différents serveurs par morceaux de chunk
+     * Le fichier est stocké dans le FS local des serveurs par la convention numeroDeChunk+localFSSourceFname
+     * @param fmt le type (LINE ou KV) du fichier à envoyer
+     * @param localFSSourceFname le fichier du FS local à envoyer
     */
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor)
             throws CommunicationException {
@@ -65,84 +71,17 @@ public class HdfsClient {
                 format = new LineFormat(fname);
             }
             format.open(Format.OpenMode.R);
-            long nbLignes = Utilities.countLines(fname);
-            long tailleChunk = nbLignes / Project.nbNodes;
-            long nbLignesRestantes = nbLignes % Project.nbNodes;
-            int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi); // Nombre d'envois pour 1 chunk
-            long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);   // Taille d'un envoi pour 1 chunk
-            long resteChunk = tailleChunk % tailleEnvoi;    // Dernières lignes du chunk à envoyer
-            System.out.println("Nombre de lignes à envoyer : " + nbLignes);
-
-            // On traite les chunks l'un après l'autre
-            for (int numeroChunk = 0; numeroChunk < Project.nbNodes; numeroChunk++) {
-
-                // On préfixe le nom du fichier par le numéro de chunk
-                String[] cheminDecoupe = fname.split("/");
-                String hdfsFname = numeroChunk + cheminDecoupe[cheminDecoupe.length - 1];
-
-                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
-                ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
-
-                Message messageDebut = new Message(Commande.CMD_WRITE, hdfsFname);
-                oos.writeObject(messageDebut);
-                Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
-
-                // On envoie le chunk par morceaux
-                for (int envoi = 0; envoi<nbEnvoi; envoi++) {
-                    Chunk morceauAEnvoyer = new Chunk();
-                    for (long i = 0; i<tailleEnvoi; i++) {
-                        KV kv = format.read();
-                        morceauAEnvoyer.add(new KVS(kv.k, kv.v));
-                    }
-                    oos.writeObject(messageContinue);
-                    oos.writeObject(morceauAEnvoyer);
-                    System.out.println("Morceau envoyé");
-                }
-
-                // Envoi des dernières lignes du chunk si la taille d'un chunk n'était pas divisible par la taille des envois 
-                if (resteChunk>0) {
-                    Chunk lignesRestantes = new Chunk();
-                    for (int i = 0; i<resteChunk; i++) {
-                        KV kv = format.read();
-                        lignesRestantes.add(new KVS(kv.k, kv.v));
-                    }
-                    oos.writeObject(messageContinue);
-                    oos.writeObject(lignesRestantes);
-                    System.out.println("Lignes restantes du chunk envoyées");
-                }
-
-                // On met les éventuelles lignes restantes dans le dernier chunk
-                if (numeroChunk == Project.nbNodes-1 && nbLignesRestantes > 0) {
-                    Chunk lignesRestantes = new Chunk();
-                    for (int i = 0; i<nbLignesRestantes; i++) {
-                        KV kv = format.read();
-                        lignesRestantes.add(new KVS(kv.k, kv.v));
-                    }
-                    oos.writeObject(messageContinue);
-                    oos.writeObject(lignesRestantes);
-                    System.out.println("Lignes restantes envoyées");
-                }
-
-                Message messageFin = new Message(Commande.CMD_WRITE, "fin");
-                oos.writeObject(messageFin);
-
-                s.close();
-                oos.close();
-            }
-
-        format.close();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
+            Utilities.envoyerFichierAuServeur(localFSSourceFname, format);
+            format.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
-      }
+    }
 
-    /*
-    Lit un fichier stocké dans le système HDFS
-    Le nom du fichier à lire est hdfsFname
-    Après lecture, il est stocké localement dans le fichier localFSDestFname
+    /**
+     * Lit un fichier stocké dans le système HDFS
+     * @param hdfsFname nom du fichier à lire
+     * @param localFSDestFname destination du fichier dans le FS local
     */
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
         try {
