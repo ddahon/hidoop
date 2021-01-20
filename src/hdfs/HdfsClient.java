@@ -113,27 +113,25 @@ public class HdfsClient {
     public static void main(String[] args) {
         // java HdfsClient write <line|kv> <file>
         // java HdfsClient read <hdfsFname> <localFSDestFname>
-        while(true) {
-            try {
-                if (args.length<2) {usage(); return;}
+        try {
+            if (args.length<2) {usage(); return;}
 
-                switch (args[0]) {
-                case "read": HdfsRead(args[1], args[2]); break;
-                case "delete": HdfsDelete(args[1]); break;
-                case "write": 
-                    Format.Type fmt;
-                    if (args.length<3) {usage(); return;}
-                    if (args[1].equals("line")) fmt = Format.Type.LINE;
-                    else if(args[1].equals("kv")) fmt = Format.Type.KV;
-                    else {usage(); return;}
-                    HdfsWrite(fmt,args[2],1);
-                    break;
-                default:
-                    usage();
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            switch (args[0]) {
+            case "read": HdfsRead(args[1], args[2]); break;
+            case "delete": HdfsDelete(args[1]); break;
+            case "write": 
+                Format.Type fmt;
+                if (args.length<3) {usage(); return;}
+                if (args[1].equals("line")) fmt = Format.Type.LINE;
+                else if(args[1].equals("kv")) fmt = Format.Type.KV;
+                else {usage(); return;}
+                HdfsWrite(fmt,args[2],1);
+                break;
+            default:
+                usage();
             }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
