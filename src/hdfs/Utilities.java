@@ -29,10 +29,10 @@ import hdfs.Message.Commande;
 import hdfs.Message.*;
 public class Utilities {
 
-    final static String[] hosts = {"localhost", "localhost"};
-    final static int[] ports = { 8081, 8082 };
-    final static int nbChunks = 2;
-    final static int tailleMaxEnvoi = 10;
+    static final String[] hosts = {"localhost", "localhost"};
+    static final int[] ports = { 8081, 8082 };
+    static final int NB_CHUNKS = 2;
+    static final int TAILLE_MAX_ENVOI = 10;
     
     /**
      * Compte les lignes d'un fichier
@@ -83,8 +83,8 @@ public class Utilities {
         long nbLignes = countLines(fname);
         long tailleChunk = nbLignes / Project.nbNodes;
         long nbLignesRestantes = nbLignes % Project.nbNodes;
-        int nbEnvoi = (int) Math.max(1, tailleChunk/tailleMaxEnvoi); // Nombre d'envois pour 1 chunk
-        long tailleEnvoi = Math.min(tailleChunk, tailleMaxEnvoi);   // Taille d'un envoi pour 1 chunk
+        int nbEnvoi = (int) Math.max(1, tailleChunk/TAILLE_MAX_ENVOI); // Nombre d'envois pour 1 chunk
+        long tailleEnvoi = Math.min(tailleChunk, TAILLE_MAX_ENVOI);   // Taille d'un envoi pour 1 chunk
         long resteChunk = tailleChunk % tailleEnvoi;    // Dernières lignes du chunk à envoyer
         System.out.println("Nombre de lignes à envoyer : " + nbLignes);
 
@@ -155,8 +155,8 @@ public class Utilities {
     public static void envoyerFichierAuClient(String fname, Format format, ObjectOutputStream oos) throws IOException {
         // On envoie le chunk par morceaux
         long nbLignes = Utilities.countLines(format.getFname());
-        int nbEnvoi = (int) Math.max(1, nbLignes/tailleMaxEnvoi); 
-        long tailleEnvoi = Math.min(nbLignes, tailleMaxEnvoi); 
+        int nbEnvoi = (int) Math.max(1, nbLignes/TAILLE_MAX_ENVOI); 
+        long tailleEnvoi = Math.min(nbLignes, TAILLE_MAX_ENVOI); 
         int reste = (int) nbLignes % (int) tailleEnvoi;    // Dernières lignes à envoyer
 
         Message messageContinue = new Message(Commande.CMD_WRITE, "continue");
