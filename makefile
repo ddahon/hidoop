@@ -14,7 +14,7 @@ JFLAGS = -d bin/ -classpath bin/
 # typing 'make' will invoke the first target entry in the makefile 
 # (the default one in this case)
 #
-default: formats config hdfs map ordo
+default: hdfs ordo
 
 formats: 
 		$(JCC) $(JFLAGS) src/formats/*.java
