@@ -64,7 +64,7 @@ public class HdfsServer {
                         s.close();
                         break;
                     case CMD_DELETE:
-                        HdfsThread th = new HdfsThread(message)
+                        HdfsThread th = new HdfsThread(message);
                         th.start();
                         break;
                  
