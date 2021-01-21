@@ -17,7 +17,7 @@ public class Worker extends UnicastRemoteObject implements WorkerInt {
         this.host = host;
         this.port = port;
         LocateRegistry.createRegistry(Integer.parseInt(port));
-        Naming.rebind("//" + host + ":" + port + "/worker", this);
+        Naming.rebind("//localhost/worker", this);
     }
 
     @Override
