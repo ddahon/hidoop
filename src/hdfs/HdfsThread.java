@@ -5,15 +5,15 @@ import java.net.Socket;
 
 public class HdfsThread extends Thread {
     private Socket mySocket;
-    private Message message;
+    private String message;
 
-    public HdfsThread(Message mes, Socket s) {
+    public HdfsThread(String mes, Socket s) {
         this.message = mes;
         this.mySocket = s;
     }
 
     public void run() {
-        File f = new File(this.message.getPremierNomFichier());
+        File f = new File(this.message);
         f.delete();
         try {
             mySocket.close();
