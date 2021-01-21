@@ -19,6 +19,7 @@ import formats.KV;
 import formats.KVFormat;
 import formats.KVS;
 import formats.Format.OpenMode;
+import hdfs.HdfsThread;
 import hdfs.Message.Commande;
 
 public class HdfsServer {
@@ -63,13 +64,8 @@ public class HdfsServer {
                         s.close();
                         break;
                     case CMD_DELETE:
-                        Thread t = new Thread() {
-                            public void run(){
-                                File f = new File(message.getPremierNomFichier());
-                                f.delete();
-                            }
-                        };
-                        t.start();
+                        HdfsThread th = new HdfsThread(message)
+                        th.start();
                         break;
                  
                 }
