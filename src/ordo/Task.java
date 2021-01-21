@@ -21,7 +21,7 @@ public class Task extends Thread {
     public Task(String host, String port, MapReduce mr, Format.Type type, String fName, CallBack cb)
             throws MalformedURLException, RemoteException, NotBoundException {
         
-        String localWorker = "//" + host + ":" + port + "/worker";
+        String localWorker = "//" + host + "/worker";
         String localInput = config.Project.PATH + "/src/" + fName;
         String localOutput = config.Project.PATH + "/dest/" + fName;
 
