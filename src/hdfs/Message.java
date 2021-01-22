@@ -5,7 +5,7 @@ import java.security.InvalidParameterException;
 
 public class Message implements Serializable {
     
-    public static enum Commande {CMD_READ , CMD_WRITE , CMD_DELETE};
+    public static enum Commande {CMD_READ , CMD_WRITE , CMD_DELETE, CMD_SHUTDOWN};
 
     private Commande commande;
     private String premierNomFichier;

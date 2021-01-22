@@ -36,10 +36,12 @@ public class HdfsServer {
     }
 
     public void launch() {
+        ServerSocket ss;
+        boolean continuer = true;
         try {
-            ServerSocket ss = new ServerSocket(this.port);
+            ss = new ServerSocket(this.port);
 
-            while (true) {
+            while (continuer) {
                 System.out.println("Listening on port " + this.port);
                 Socket s = ss.accept();
                 System.out.println("Connexion établie avec "+s.getInetAddress());
@@ -68,6 +70,10 @@ public class HdfsServer {
                         f.delete();
                         s.close();
                         break;
+                    case CMD_SHUTDOWN:
+                        s.close();
+                        ss.close();
+                        continuer=false;
                  
                 }
                 System.out.println("Connexion fermée\n");

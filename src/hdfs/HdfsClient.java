@@ -38,12 +38,12 @@ public class HdfsClient {
     */
     public static void HdfsDelete(String hdfsFname) {
         for (int numeroChunk = 0; numeroChunk<Project.nbNodes; numeroChunk++) {
-            try (
-                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]))
-                ) {
+            try {
+                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                 Message messageDelete = new Message(Commande.CMD_DELETE, numeroChunk+hdfsFname);
                 oos.writeObject(messageDelete);
+                s.close();
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -109,7 +109,22 @@ public class HdfsClient {
             e.printStackTrace();
         }
     }
-	
+    
+    public static void HdfsShutdown() {
+        for (int numeroChunk = 0; numeroChunk<Project.nbNodes; numeroChunk++) {
+            try {
+                Socket s = new Socket(Project.hosts[numeroChunk], Integer.parseInt(Project.ports[numeroChunk]));
+                ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+                Message messageShutdown = new Message(Commande.CMD_SHUTDOWN, "shutdown");
+                oos.writeObject(messageShutdown);
+                s.close();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
     public static void main(String[] args) {
         // java HdfsClient write <line|kv> <file>
         // java HdfsClient read <hdfsFname> <localFSDestFname>
@@ -127,6 +142,8 @@ public class HdfsClient {
                 else {usage(); return;}
                 HdfsWrite(fmt,args[2],1);
                 break;
+            case "shutdown":
+                HdfsShutdown();
             default:
                 usage();
             }
