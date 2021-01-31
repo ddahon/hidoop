@@ -31,7 +31,6 @@ public class TesteurRMI extends UnicastRemoteObject implements WorkerInt {
 	{
 		try {
             Registry registre = LocateRegistry.createRegistry(Integer.parseInt(args[1]));
-            System.setProperty("java.rmi.server.hostname","127.0.1.1");
             TesteurRMI testeur = new TesteurRMI(args[0], args[1]);
             Naming.rebind("rmi://" + args[0] + "/testeur", testeur);
             System.out.println("Testeur " + args[0] + ":" + args[1] + " démarré");
