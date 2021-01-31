@@ -22,7 +22,7 @@ formats:
 config: 
 		$(JCC) $(JFLAGS) src/config/*.java
 
-hdfs: formats
+hdfs: config formats
 		$(JCC) $(JFLAGS) src/hdfs/*.java
 
 map: formats
