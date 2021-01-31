@@ -5,11 +5,11 @@ import java.rmi.Naming;
 public class TestRMI {
 
     public static void main(String[] Args) {
-        String host = "nickel";
+        String host = "J0rdi";
         String port = "8080";
         try {
             CallBack cb = new Report();
-            String localTesteur = "//" + host + ":" + port + "/testeur";
+            String localTesteur = "rmi://" + host + "/testeur";
             WorkerInt testeur = (WorkerInt) Naming.lookup(localTesteur);
             testeur.runTest(0, cb);
             System.out.println(cb.getInfo().getMessage());
