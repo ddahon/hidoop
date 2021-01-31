@@ -22,8 +22,8 @@ public class Task extends Thread {
             throws MalformedURLException, RemoteException, NotBoundException {
         
         String localWorker = "//" + host + "/worker";
-        String localInput = config.Project.PATH + "/src/" + fName;
-        String localOutput = config.Project.PATH + "/dest/" + fName;
+        String localInput = config.Project.srcPATH + fName;
+        String localOutput = config.Project.destPATH + fName;
 
     	worker = (WorkerInt) Naming.lookup(localWorker);
         mapReduce = mr;

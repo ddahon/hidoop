@@ -50,7 +50,7 @@ public class Job implements JobInterface {
     		Thread[] tasks = new Thread[nbNodes]; 
     		for (int i=0; i < nbNodes; i++) {
                 cb[i] = new Report();
-    			tasks[i] = new Thread(new Task(hosts[i], ports[i], mapReduce, type, fname, cb[i]));
+    			tasks[i] = new Thread(new Task(hosts[i], ports[i], mapReduce, type, i+fname, cb[i]));
     		}
     		
     		// On lance les threads pour le Mappage
