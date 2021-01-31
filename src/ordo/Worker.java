@@ -2,6 +2,7 @@ package ordo;
 
 import java.net.MalformedURLException;
 import java.rmi.*;
+import java.rmi.registry.*;
 import java.rmi.server.*;
 
 import formats.Format;
@@ -15,7 +16,8 @@ public class Worker extends UnicastRemoteObject implements WorkerInt {
     public Worker(String host, String port) throws AlreadyBoundException, RemoteException, MalformedURLException {
         this.host = host;
         this.port = port;
-        Naming.bind("rmi://" + host + "/worker", this);
+        Registry registre = LocateRegistry.createRegistry(Integer.parseInt(port));
+        Naming.rebind("//" + host + ":" + port + "/worker", this);
     }
 
     @Override

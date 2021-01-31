@@ -16,7 +16,7 @@ public class TaskTest extends Thread {
     public TaskTest(int t, String host, String port, CallBack cb)
             throws MalformedURLException, RemoteException, NotBoundException {
         
-        String localWorker = "//" + host + "/worker";
+        String localWorker = "//" + host + ":" + port + "/worker";
 
     	worker = (WorkerInt) Naming.lookup(localWorker);
         this.cb = cb;
